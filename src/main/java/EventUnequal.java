@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -96,7 +97,8 @@ public class EventUnequal implements OperatorInterface {
                         )
                 );
 
-        CloseableHttpClient httpClient = HttpClientBuilder.create().build();
+        RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(10 * 1000).build();
+        CloseableHttpClient httpClient = HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).build();
 
         try {
             HttpPost request = new HttpPost(this.url);

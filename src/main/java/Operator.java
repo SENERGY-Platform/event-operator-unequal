@@ -22,10 +22,19 @@ public class Operator {
     public static void main(String[] args) {
         Stream stream  = new Stream();
         Config config = new Config();
+        String deprecatedValue = config.getConfigValue("interval", "(*,*)");
+        String value = config.getConfigValue("value", deprecatedValue);
+        String triggerUrl = config.getConfigValue("url", "");
+        String eventId = config.getConfigValue("eventId", "");
+        String converterUrl = config.getConfigValue("converterUrl", "");
+        String convertFrom = config.getConfigValue("convertFrom", "");
+        String convertTo = config.getConfigValue("convertTo", "");
+        Converter converter = new Converter(converterUrl, convertFrom, convertTo);
         EventUnequal filter = new EventUnequal(
-                config.getConfigValue("value", "\"\""),
-                config.getConfigValue("url", ""),
-                config.getConfigValue("eventId", "")
+                value,
+                triggerUrl,
+                eventId,
+                converter
         );
         stream.start(filter);
     }

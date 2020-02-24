@@ -32,11 +32,13 @@ public class EventUnequal implements OperatorInterface {
     private Object value;
     private String url;
     private String eventId;
+    private Converter converter;
 
-    public EventUnequal(String valueString, String url, String eventId) {
+    public EventUnequal(String valueString, String url, String eventId, Converter converter) {
         this.value = new JSONTokener(valueString).nextValue();
         this.url = url;
         this.eventId = eventId;
+        this.converter = converter;
     }
 
     @Override
@@ -44,26 +46,30 @@ public class EventUnequal implements OperatorInterface {
         try{
             Input input = message.getInput("value");
             if(this.operator(input)){
-               this.trigger(input);
+                this.trigger(input);
             }
         }catch (Exception e){
             e.printStackTrace();
         }
     }
 
-    private boolean operator(Input input){
-        boolean ok = false;
+    private boolean operator(Input input) throws IOException {
+        Object value;
         if(this.value instanceof String){
-            ok = !this.value.equals(input.getString());
+            value = input.getString();
         }else if(this.value instanceof Double){
-            ok = !this.value.equals(input.getValue());
+            value = input.getValue();
         }else if(this.value instanceof Integer){
-            ok = !this.value.equals(input.getValue().intValue());
+            value = input.getValue().intValue();
         }else if(this.value instanceof Float){
-            ok = !this.value.equals(input.getValue().floatValue());
+            value = input.getValue().floatValue();
+        }else{
+            value = null;
         }
-        return ok;
+        value = this.converter.convert(value);
+        return !this.value.equals(value);
     }
+
 
     private void trigger(Input input){
         Object value;

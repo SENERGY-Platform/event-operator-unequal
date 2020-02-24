@@ -62,7 +62,7 @@ public class EventUnequalTest {
                 e.printStackTrace();
             }
         });
-        EventUnequal events = new EventUnequal(configuredValue, "http://localhost:"+server.getAddress().getPort()+"/endpoint", "test");
+        EventUnequal events = new EventUnequal(configuredValue, "http://localhost:"+server.getAddress().getPort()+"/endpoint", "test", new Converter("", "", ""));
         Message msg = TestMessageProvider.getTestMessage(messageValue);
         events.config(msg);
         events.run(msg);

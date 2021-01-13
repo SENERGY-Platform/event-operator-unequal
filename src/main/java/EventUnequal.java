@@ -20,22 +20,24 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.infai.seits.sepl.operators.Input;
-import org.infai.seits.sepl.operators.Message;
-import org.infai.seits.sepl.operators.OperatorInterface;
+import org.infai.ses.senergy.exceptions.NoValueException;
+import org.infai.ses.senergy.operators.BaseOperator;
+import org.infai.ses.senergy.operators.Input;
+import org.infai.ses.senergy.operators.Message;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import java.io.IOException;
 
 
-public class EventUnequal implements OperatorInterface {
+public class EventUnequal extends BaseOperator {
     private Object value;
     private String url;
     private String eventId;
     private Converter converter;
 
-    public EventUnequal(String valueString, String url, String eventId, Converter converter) {
+    public EventUnequal(String valueString, String url, String eventId, Converter converter) throws JSONException {
         this.value = new JSONTokener(valueString).nextValue();
         this.url = url;
         this.eventId = eventId;
@@ -44,58 +46,74 @@ public class EventUnequal implements OperatorInterface {
 
     @Override
     public void run(Message message) {
-        try{
+        try {
             Input input = message.getInput("value");
-            if(this.operator(input)){
+            if (this.operator(input)) {
                 this.trigger(input);
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     private boolean operator(Input input) throws IOException {
         Object value;
-        if(this.value instanceof String){
-            value = input.getString();
-        }else if(this.value instanceof Double){
-            value = input.getValue();
-        }else if(this.value instanceof Integer){
-            value = input.getValue().intValue();
-        }else if(this.value instanceof Float){
-            value = input.getValue().floatValue();
-        }else{
-            value = null;
+        try {
+            if (this.value instanceof String) {
+                value = input.getString();
+            } else if (this.value instanceof Double) {
+                value = input.getValue();
+            } else if (this.value instanceof Integer) {
+                value = input.getValue().intValue();
+            } else if (this.value instanceof Float) {
+                value = input.getValue().floatValue();
+            } else {
+                value = null;
+            }
+        } catch (NoValueException e) {
+            e.printStackTrace();
+            return false;
         }
         value = this.converter.convert(value);
         return !this.value.equals(value);
     }
 
 
-    private void trigger(Input input){
+    private void trigger(Input input) {
         Object value;
+        try {
 
-        if(this.value instanceof String){
-            value = input.getString();
-        }else if(this.value instanceof Double){
-            value = input.getValue();
-        }else if(this.value instanceof Integer){
-            value = input.getValue().intValue();
-        }else if(this.value instanceof Float){
-            value = input.getValue().floatValue();
-        }else{
-            value = input.getValue();
+            if (this.value instanceof String) {
+                value = input.getString();
+            } else if (this.value instanceof Double) {
+                value = input.getValue();
+            } else if (this.value instanceof Integer) {
+                value = input.getValue().intValue();
+            } else if (this.value instanceof Float) {
+                value = input.getValue().floatValue();
+            } else {
+                value = input.getValue();
+            }
+        } catch (NoValueException e) {
+            e.printStackTrace();
+            return;
         }
 
-        JSONObject json = new JSONObject()
-                .put("messageName", this.eventId)
-                .put("all", true)
-                .put("resultEnabled", false)
-                .put("processVariablesLocal", new JSONObject()
-                        .put("event", new JSONObject()
-                                .put("value", value)
-                        )
-                );
+        JSONObject json;
+        try {
+            json = new JSONObject()
+                    .put("messageName", this.eventId)
+                    .put("all", true)
+                    .put("resultEnabled", false)
+                    .put("processVariablesLocal", new JSONObject()
+                            .put("event", new JSONObject()
+                                    .put("value", value)
+                            )
+                    );
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return;
+        }
 
         RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(10 * 1000).build();
         CloseableHttpClient httpClient = HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).build();
@@ -119,7 +137,8 @@ public class EventUnequal implements OperatorInterface {
     }
 
     @Override
-    public void config(Message message) {
+    public Message configMessage(Message message) {
         message.addInput("value");
+        return message;
     }
 }

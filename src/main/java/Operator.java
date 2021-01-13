@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
-import org.infai.seits.sepl.operators.Config;
-import org.infai.seits.sepl.operators.Stream;
+
+import org.infai.ses.senergy.operators.Config;
+import org.infai.ses.senergy.operators.Stream;
+import org.infai.ses.senergy.utils.ConfigProvider;
+import org.json.JSONException;
 
 public class Operator {
 
     public static void main(String[] args) {
-        Stream stream  = new Stream();
-        Config config = new Config();
+        Stream stream = new Stream();
+        Config config = ConfigProvider.getConfig();
         String deprecatedValue = config.getConfigValue("interval", "(*,*)");
         String value = config.getConfigValue("value", deprecatedValue);
         String triggerUrl = config.getConfigValue("url", "");
@@ -30,12 +33,18 @@ public class Operator {
         String convertFrom = config.getConfigValue("convertFrom", "");
         String convertTo = config.getConfigValue("convertTo", "");
         Converter converter = new Converter(converterUrl, convertFrom, convertTo);
-        EventUnequal filter = new EventUnequal(
-                value,
-                triggerUrl,
-                eventId,
-                converter
-        );
+        EventUnequal filter;
+        try {
+            filter = new EventUnequal(
+                    value,
+                    triggerUrl,
+                    eventId,
+                    converter
+            );
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return;
+        }
         stream.start(filter);
     }
 }

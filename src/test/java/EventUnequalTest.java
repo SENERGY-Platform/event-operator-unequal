@@ -15,7 +15,14 @@
  */
 
 import com.sun.net.httpserver.HttpServer;
-import org.infai.seits.sepl.operators.Message;
+import org.infai.ses.senergy.models.DeviceMessageModel;
+import org.infai.ses.senergy.models.MessageModel;
+import org.infai.ses.senergy.operators.Config;
+import org.infai.ses.senergy.operators.Helper;
+import org.infai.ses.senergy.operators.Message;
+import org.infai.ses.senergy.testing.utils.JSONHelper;
+import org.infai.ses.senergy.utils.ConfigProvider;
+import org.json.JSONException;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -44,7 +51,7 @@ public class EventUnequalTest {
         return candidate;
     }
 
-    private void test(String configuredValue, Object messageValue, boolean expectedToTrigger) throws IOException {
+    private void test(String configuredValue, Object messageValue, boolean expectedToTrigger) throws IOException, JSONException {
         EventUnequalTest.called = false;
         HttpServer server = TriggerServerMock.create(inputStream -> {
             JSONParser jsonParser = new JSONParser();
@@ -63,9 +70,19 @@ public class EventUnequalTest {
             }
         });
         EventUnequal events = new EventUnequal(configuredValue, "http://localhost:"+server.getAddress().getPort()+"/endpoint", "test", new Converter("", "", ""));
-        Message msg = TestMessageProvider.getTestMessage(messageValue);
-        events.config(msg);
-        events.run(msg);
+        Config config = new Config(new JSONHelper().parseFile("config.json").toString());
+        ConfigProvider.setConfig(config);
+        MessageModel model = new MessageModel();
+        Message message = new Message();
+        events.configMessage(message);
+        JSONObject m = new JSONHelper().parseFile("message.json");
+        ((JSONObject)((JSONObject) m.get("value")).get("reading")).put("value", messageValue);
+        DeviceMessageModel deviceMessageModel = JSONHelper.getObjectFromJSONString(m.toString(), DeviceMessageModel.class);
+        assert deviceMessageModel != null;
+        String topicName = config.getInputTopicsConfigs().get(0).getName();
+        model.putMessage(topicName, Helper.deviceToInputMessageModel(deviceMessageModel, topicName));
+        message.setMessage(model);
+        events.run(message);
         server.stop(0);
         Assert.assertEquals(EventUnequalTest.called, expectedToTrigger);
         if(expectedToTrigger){
@@ -80,54 +97,54 @@ public class EventUnequalTest {
     }
 
     @Test
-    public void stringUnequalFalse() throws IOException {
+    public void stringUnequalFalse() throws IOException, JSONException {
         test("\"foobar\"", "foobar",false);
     }
 
     @Test
-    public void stringUnequalTrue() throws IOException {
+    public void stringUnequalTrue() throws IOException, JSONException {
         test("\"foobar\"", "foo",true);
     }
 
     @Test
-    public void numberUnequalFalse() throws IOException {
+    public void numberUnequalFalse() throws IOException, JSONException {
         test("42", 42,false);
     }
 
     @Test
-    public void floatUnequalFalse() throws IOException {
+    public void floatUnequalFalse() throws IOException, JSONException {
         test("4.2", 4.2, false);
     }
 
     @Test
-    public void floatUnequalFalse2() throws IOException {
+    public void floatUnequalFalse2() throws IOException, JSONException {
         test("42.0", 42.0, false);
     }
 
     @Test
-    public void floatUnequalFalse3() throws IOException {
+    public void floatUnequalFalse3() throws IOException, JSONException {
         test("42", 42.0, false);
     }
 
 
     @Test
-    public void floatUnequalTrue() throws IOException {
+    public void floatUnequalTrue() throws IOException, JSONException {
         test("4.2", 13, true);
     }
 
     @Test
-    public void numberUnequalTrue() throws IOException {
+    public void numberUnequalTrue() throws IOException, JSONException {
         test("42", 13, true);
     }
 
     @Test
     @Ignore("this test can not be successful; operator will interpret number as string (\"42\"); test-helper compares with original")
-    public void stringNumber() throws IOException {
+    public void stringNumber() throws IOException, JSONException {
         test("\"foobar\"", 42, true);
     }
 
     @Test
-    public void numberString() throws IOException {
+    public void numberString() throws IOException, JSONException {
         //string "foo" can not be interpreted as number -> no event trigger
         test("42", "foo", false);
     }

@@ -22,6 +22,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.infai.ses.senergy.exceptions.NoValueException;
 import org.infai.ses.senergy.operators.BaseOperator;
+import org.infai.ses.senergy.operators.FlexInput;
 import org.infai.ses.senergy.operators.Input;
 import org.infai.ses.senergy.operators.Message;
 import org.json.JSONException;
@@ -47,7 +48,7 @@ public class EventUnequal extends BaseOperator {
     @Override
     public void run(Message message) {
         try {
-            Input input = message.getInput("value");
+            FlexInput input = message.getFlexInput("value");
             if (this.operator(input)) {
                 this.trigger(input);
             }
@@ -56,7 +57,7 @@ public class EventUnequal extends BaseOperator {
         }
     }
 
-    private boolean operator(Input input) throws IOException {
+    private boolean operator(FlexInput input) throws IOException {
         Object value;
         try {
             if (this.value instanceof String) {
@@ -79,7 +80,7 @@ public class EventUnequal extends BaseOperator {
     }
 
 
-    private void trigger(Input input) {
+    private void trigger(FlexInput input) {
         Object value;
         try {
 
@@ -138,7 +139,7 @@ public class EventUnequal extends BaseOperator {
 
     @Override
     public Message configMessage(Message message) {
-        message.addInput("value");
+        message.addFlexInput("value");
         return message;
     }
 }

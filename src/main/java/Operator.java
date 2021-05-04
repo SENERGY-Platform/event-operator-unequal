@@ -32,7 +32,8 @@ public class Operator {
         String converterUrl = config.getConfigValue("converterUrl", "");
         String convertFrom = config.getConfigValue("convertFrom", "");
         String convertTo = config.getConfigValue("convertTo", "");
-        Converter converter = new Converter(converterUrl, convertFrom, convertTo);
+        String topicToPathAndCharacteristic = config.getConfigValue("topicToPathAndCharacteristic", "");
+        Converter converter = new Converter(converterUrl, convertFrom, convertTo, topicToPathAndCharacteristic);
         EventUnequal filter;
         try {
             filter = new EventUnequal(

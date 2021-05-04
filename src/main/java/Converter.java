@@ -15,46 +15,84 @@
  */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.infai.ses.senergy.operators.FlexInput;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class Converter {
     private String url;
     private String from;
     private String to;
-    private boolean used;
+    private Map<String, List<PathAndCharacteristic>> topicToPathAndCharacteristic;
 
-    public Converter(String url, String from, String to){
+    public Converter(String url, String from, String to) {
+        this(url, from, to, "");
+    }
+
+    public Converter(String url, String from, String to, String topicToPathAndCharacteristic) {
         this.url = url;
         this.from = from;
         this.to = to;
-        if(this.url.equals("") || this.from.equals("") || this.to.equals("")){
-            this.used = false;
-        }else{
-            this.used = true;
-        }
+        this.topicToPathAndCharacteristic = this.parseTopicToPathAndCharacteristic(topicToPathAndCharacteristic);
     }
 
+
     public Object convert(Object in) throws IOException {
-        if(this.used) {
-            StringEntity entity = new StringEntity(this.objToJsonStr(in));
+        return this.convert(this.from, this.to, in);
+    }
+
+    public Object convert(FlexInput input, Object value) throws IOException {
+        String fromCharacteristic = this.from;
+        if (fromCharacteristic.equals("")) {
+            String topic = input.getCurrentInputTopic();
+            List<PathAndCharacteristic> list = this.topicToPathAndCharacteristic.getOrDefault(topic, new ArrayList<PathAndCharacteristic>());
+            if (list.size() > 0) {
+                fromCharacteristic = list.get(0).characteristic_id;
+            }
+        }
+        return this.convert(fromCharacteristic, this.to, value);
+    }
+
+    public Object convert(String fromCharacteristic, String to, Object toCharacteristic) throws IOException {
+        if(this.useConverter(fromCharacteristic, to)) {
+            StringEntity entity = new StringEntity(this.objToJsonStr(toCharacteristic));
             CloseableHttpClient httpClient = HttpClientBuilder.create().build();
-            HttpPost request = new HttpPost(this.url + "/" + this.from + "/" + this.to);
+            HttpPost request = new HttpPost(this.url + "/" + fromCharacteristic + "/" + to);
             request.setEntity(entity);
             request.addHeader("content-type", "application/json");
             CloseableHttpResponse resp = httpClient.execute(request);
             String respStr = new BasicResponseHandler().handleResponse(resp);
             return this.jsonStrToObject(respStr);
         }else{
-            return in;
+            return toCharacteristic;
         }
+    }
+
+    public boolean useConverter(String fromCharacteristic, String toCharacteristic) {
+        if (this.url.equals("")) {
+            return false;
+        }
+        if (fromCharacteristic.equals("") || toCharacteristic.equals("")) {
+            return false;
+        }
+        if (fromCharacteristic.equals(toCharacteristic)) {
+            return false;
+        }
+        return true;
     }
 
     private String objToJsonStr(Object in) throws IOException {
@@ -69,8 +107,14 @@ public class Converter {
         return mapper.readValue(in, Object.class);
     }
 
-
-    public boolean isUsed() {
-        return used;
+    private Map<String,List<PathAndCharacteristic>> parseTopicToPathAndCharacteristic(String topicToPathAndCharacteristic){
+        topicToPathAndCharacteristic = topicToPathAndCharacteristic.trim();
+        if (topicToPathAndCharacteristic.equals("")) {
+            return new HashMap<String,List<PathAndCharacteristic>>();
+        }
+        Gson g = new Gson();
+        Type mapType = new TypeToken<Map<String,List<PathAndCharacteristic>>>() {}.getType();
+        return g.fromJson(topicToPathAndCharacteristic, mapType);
     }
+
 }

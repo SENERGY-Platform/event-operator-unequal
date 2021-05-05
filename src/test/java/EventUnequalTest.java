@@ -145,7 +145,6 @@ public class EventUnequalTest {
 
     @Test
     public void numberString() throws IOException, JSONException {
-        //string "foo" can not be interpreted as number -> no event trigger
-        test("42", "foo", false);
+        test("42", "foo", true);
     }
 }

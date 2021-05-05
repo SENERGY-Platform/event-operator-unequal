@@ -59,26 +59,21 @@ public class EventUnequal extends BaseOperator {
     }
 
     private Object getValueOfInput(FlexInput input) throws IOException, NoValueException {
-        Object value;
-        if (this.value instanceof String) {
-            value = input.getString();
-        } else if (this.value instanceof Double) {
-            value = input.getValue();
-        } else if (this.value instanceof Integer) {
-            value = input.getValue().intValue();
-        } else if (this.value instanceof Float) {
-            value = input.getValue().floatValue();
-        } else {
-            value = null;
-        }
-        value = this.converter.convert(input, value);
-        return value;
+        return this.converter.convert(input, input.getValue(Object.class));
     }
 
-
-    private boolean operator(Object value) throws IOException {
-        value = this.converter.convert(value);
-        return !this.value.equals(value);
+    private boolean operator(Object value) {
+        Object expected = this.value;
+        Object actual = value;
+        if (expected.getClass() != actual.getClass()) {
+            if (expected instanceof Integer) {
+                expected = (double)((int)(expected));
+            }
+            if (actual instanceof Integer) {
+                actual = (double)((int)(actual));
+            }
+        }
+        return !actual.equals(expected);
     }
 
 

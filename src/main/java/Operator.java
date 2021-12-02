@@ -33,10 +33,13 @@ public class Operator {
         String convertFrom = config.getConfigValue("convertFrom", "");
         String convertTo = config.getConfigValue("convertTo", "");
         String topicToPathAndCharacteristic = config.getConfigValue("topicToPathAndCharacteristic", "");
+        String userToken = config.getConfigValue("userToken", "");
+
         Converter converter = new Converter(converterUrl, convertFrom, convertTo, topicToPathAndCharacteristic);
         EventUnequal filter;
         try {
             filter = new EventUnequal(
+                    userToken,
                     value,
                     triggerUrl,
                     eventId,

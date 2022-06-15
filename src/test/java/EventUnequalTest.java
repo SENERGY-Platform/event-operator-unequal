@@ -69,7 +69,7 @@ public class EventUnequalTest {
                 e.printStackTrace();
             }
         });
-        EventUnequal events = new EventUnequal("", configuredValue, "http://localhost:"+server.getAddress().getPort()+"/endpoint", "test", new Converter("", "", ""));
+        EventUnequal events = new EventUnequal("", configuredValue, "http://localhost:"+server.getAddress().getPort()+"/endpoint", "test", new Converter("","", "", ""));
         Config config = new Config(new JSONHelper().parseFile("config.json").toString());
         ConfigProvider.setConfig(config);
         MessageModel model = new MessageModel();

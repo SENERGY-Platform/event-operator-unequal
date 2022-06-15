@@ -34,8 +34,10 @@ public class Operator {
         String convertTo = config.getConfigValue("convertTo", "");
         String topicToPathAndCharacteristic = config.getConfigValue("topicToPathAndCharacteristic", "");
         String userToken = config.getConfigValue("userToken", "");
+        String castExtension = config.getConfigValue("castExtensions", "");
+        String extendedConverterUrl = config.getConfigValue("extendedConverterUrl", "");
 
-        Converter converter = new Converter(converterUrl, convertFrom, convertTo, topicToPathAndCharacteristic);
+        Converter converter = new Converter(extendedConverterUrl, converterUrl, convertFrom, convertTo, topicToPathAndCharacteristic, castExtension);
         EventUnequal filter;
         try {
             filter = new EventUnequal(

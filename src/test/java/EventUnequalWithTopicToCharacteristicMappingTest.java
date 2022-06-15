@@ -119,7 +119,8 @@ public class EventUnequalWithTopicToCharacteristicMappingTest {
             }
         });
         HttpServer converterServer = ConverterServerMock.createWithResponse("/inCharacteristic/outCharacteristic", conversionResp);
-        Converter converter = new Converter("http://localhost:"+converterServer.getAddress().getPort(), "", "outCharacteristic", topicToPathAndCharacteristic);
+        String mockUrl = "http://localhost:"+converterServer.getAddress().getPort();
+        Converter converter = new Converter(mockUrl, mockUrl, "", "outCharacteristic", topicToPathAndCharacteristic);
         EventUnequal events = new EventUnequal("", configuredValue, "http://localhost:"+server.getAddress().getPort()+"/endpoint", "test", converter);
         Config config = new Config(new JSONHelper().parseFile("config.json").toString());
         ConfigProvider.setConfig(config);

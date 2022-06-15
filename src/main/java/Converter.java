@@ -28,26 +28,31 @@ import org.infai.ses.senergy.operators.FlexInput;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Converter {
     private String url;
+    private String extendedUrl;
     private String from;
     private String to;
     private Map<String, List<PathAndCharacteristic>> topicToPathAndCharacteristic;
+    private List<CastExtension> castExtensions;
 
-    public Converter(String url, String from, String to) {
-        this(url, from, to, "");
+    public Converter(String extendedUrl, String url, String from, String to) {
+        this(extendedUrl, url, from, to, "", "");
     }
 
-    public Converter(String url, String from, String to, String topicToPathAndCharacteristic) {
+    public Converter(String extendedUrl,String url, String from, String to, String topicToPathAndCharacteristic) {
+        this(extendedUrl, url, from, to, topicToPathAndCharacteristic, "");
+    }
+
+    public Converter(String extendedUrl,String url, String from, String to, String topicToPathAndCharacteristic, String castExtensions) {
+        this.extendedUrl = extendedUrl;
         this.url = url;
         this.from = from;
         this.to = to;
         this.topicToPathAndCharacteristic = this.parseTopicToPathAndCharacteristic(topicToPathAndCharacteristic);
+        this.castExtensions = this.parseCastExtensions(castExtensions);
     }
 
 
@@ -67,19 +72,41 @@ public class Converter {
         return this.convert(fromCharacteristic, this.to, value);
     }
 
-    public Object convert(String fromCharacteristic, String to, Object toCharacteristic) throws IOException {
-        if(this.useConverter(fromCharacteristic, to)) {
-            StringEntity entity = new StringEntity(this.objToJsonStr(toCharacteristic));
-            CloseableHttpClient httpClient = HttpClientBuilder.create().build();
-            HttpPost request = new HttpPost(this.url + "/" + fromCharacteristic + "/" + to);
-            request.setEntity(entity);
-            request.addHeader("content-type", "application/json");
-            CloseableHttpResponse resp = httpClient.execute(request);
-            String respStr = new BasicResponseHandler().handleResponse(resp);
-            return this.jsonStrToObject(respStr);
+    public Object convert(String from, String to, Object value) throws IOException {
+        if(this.useConverter(from, to)) {
+            if(this.useCastExtensions()) {
+                return this.convertWithExtension(from, to, value);
+            } else {
+                return this.convertWithoutExtension(from, to, value);
+            }
         }else{
-            return toCharacteristic;
+            return value;
         }
+    }
+
+    public Object convertWithExtension(String from, String to, Object value) throws IOException {
+        Map<String, Object> payload = new HashMap<String, Object>();
+        payload.put("input", value);
+        payload.put("extensions", this.castExtensions);
+        StringEntity entity = new StringEntity(this.objToJsonStr(payload));
+        CloseableHttpClient httpClient = HttpClientBuilder.create().build();
+        HttpPost request = new HttpPost(this.getUrlWithExtension() + "/" + from + "/" + to);
+        request.setEntity(entity);
+        request.addHeader("content-type", "application/json");
+        CloseableHttpResponse resp = httpClient.execute(request);
+        String respStr = new BasicResponseHandler().handleResponse(resp);
+        return this.jsonStrToObject(respStr);
+    }
+
+    public Object convertWithoutExtension(String from, String to, Object value) throws IOException {
+        StringEntity entity = new StringEntity(this.objToJsonStr(value));
+        CloseableHttpClient httpClient = HttpClientBuilder.create().build();
+        HttpPost request = new HttpPost(this.getUrlWithoutExtension() + "/" + from + "/" + to);
+        request.setEntity(entity);
+        request.addHeader("content-type", "application/json");
+        CloseableHttpResponse resp = httpClient.execute(request);
+        String respStr = new BasicResponseHandler().handleResponse(resp);
+        return this.jsonStrToObject(respStr);
     }
 
     public boolean useConverter(String fromCharacteristic, String toCharacteristic) {
@@ -93,6 +120,18 @@ public class Converter {
             return false;
         }
         return true;
+    }
+
+    public boolean useCastExtensions() {
+        return !this.getUrlWithExtension().equals("") && this.castExtensions != null && this.castExtensions.size() > 0;
+    }
+
+    public String getUrlWithExtension() {
+        return this.extendedUrl;
+    }
+
+    public String getUrlWithoutExtension() {
+        return this.url;
     }
 
     private String objToJsonStr(Object in) throws IOException {
@@ -117,4 +156,13 @@ public class Converter {
         return g.fromJson(topicToPathAndCharacteristic, mapType);
     }
 
+    private List<CastExtension> parseCastExtensions(String castExtensions){
+        castExtensions = castExtensions.trim();
+        if (castExtensions.equals("")) {
+            return new LinkedList<CastExtension>();
+        }
+        Gson g = new Gson();
+        Type listType = new TypeToken<List<CastExtension>>() {}.getType();
+        return g.fromJson(castExtensions, listType);
+    }
 }
